@@ -1,0 +1,3 @@
+include ':eglocationtracker'
+include ':app'
+rootProject.name = "EGLocationTrackerApp"
