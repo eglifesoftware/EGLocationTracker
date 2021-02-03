@@ -54,7 +54,7 @@ class LocationTracker(private val intervalTime: Long = 10000,
     }
 
     @SuppressLint("MissingPermission")
-    private fun getLastLocation() {
+    fun getLastLocation() {
         fusedLocationClient?.lastLocation
                 ?.addOnSuccessListener { location : Location? ->
                     Log.e("iii", "Location: ${location.toString()}")
