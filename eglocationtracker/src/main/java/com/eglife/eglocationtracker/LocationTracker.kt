@@ -17,36 +17,48 @@ class LocationTracker(private val intervalTime: Long = 10000,
                       val trackerPriority: Int = LocationTrackerPriority.PRIORITY_HIGH_ACCURACY.value,
                       private val smallestDistance: Float = 0f) {
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var fusedLocationClient: FusedLocationProviderClient? = null
     var locationRequest: LocationRequest? = null
     var isRunningLocationUpdate = false
 
     val locationObs: BehaviorSubject<Optional<EGLocation>> = BehaviorSubject.createDefault(Optional(null))
 
     fun startLocationTracking(context: Context) {
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-        createLocationRequest(context)
+        // Create fusedLocation client if needed
+        if (fusedLocationClient == null) {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        }
+
+        // Create location request if needed
+        if (locationRequest == null) {
+            locationRequest = createLocationRequest(context)
+        }
+
+        // Check location setting
+        locationRequest?.let {
+            checkLocationSetting(it, context)
+        }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun getLastLocation() {
-        fusedLocationClient.lastLocation
-                .addOnSuccessListener { location : Location? ->
-                    Log.e("iii", "Location: ${location.toString()}")
-                }
+    fun stopLocationTracking() {
+        stopLocationUpdates()
     }
 
-    private fun createLocationRequest(context: Context) {
-        locationRequest = LocationRequest.create()?.apply {
+    private fun createLocationRequest(context: Context) : LocationRequest? {
+        return LocationRequest.create()?.apply {
             interval = intervalTime
             fastestInterval = fastestIntervalTime
             priority = trackerPriority
             smallestDisplacement = smallestDistance
         }
+    }
 
-        locationRequest?.let {
-            checkLocationSetting(it, context)
-        }
+    @SuppressLint("MissingPermission")
+    private fun getLastLocation() {
+        fusedLocationClient?.lastLocation
+                ?.addOnSuccessListener { location : Location? ->
+                    Log.e("iii", "Location: ${location.toString()}")
+                }
     }
 
     private fun checkLocationSetting(locationRequest: LocationRequest, context: Context) {
@@ -72,7 +84,6 @@ class LocationTracker(private val intervalTime: Long = 10000,
                             REQUEST_CHECK_SETTINGS)
                 } catch (sendEx: IntentSender.SendIntentException) {
                     // Ignore the error
-
                 }
             }
         }
@@ -80,7 +91,6 @@ class LocationTracker(private val intervalTime: Long = 10000,
 
     private fun startGettingLocation() {
         Log.e("iii", "Start location update")
-        getLastLocation()
         startLocationUpdates()
     }
 
@@ -114,13 +124,13 @@ class LocationTracker(private val intervalTime: Long = 10000,
         if (isRunningLocationUpdate) return
 
         isRunningLocationUpdate = true
-        fusedLocationClient.requestLocationUpdates(locationRequest,
+        fusedLocationClient?.requestLocationUpdates(locationRequest,
                 locationCallback,
                 Looper.getMainLooper())
     }
 
     private fun stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        fusedLocationClient?.removeLocationUpdates(locationCallback)
         isRunningLocationUpdate = false
     }
 
